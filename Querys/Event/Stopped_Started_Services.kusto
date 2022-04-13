@@ -1,7 +1,15 @@
+// Logik: hole alle gestoppten und schaue dann, ob sie gestartet wurden. ausser die, die innerhalb von 60sekunden neu gestartet wurden
+// 7034: other source: https://social.technet.microsoft.com/wiki/contents/articles/13764.event-id-7034-service-terminated.aspx
+// 7034: docs: https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd349369(v=ws.10)
+// Service Control Manager (SCM) stops services and driver services. It also reports when services terminate unexpectedly or fail to restart after it takes corrective action.  
+// 7036: docs: https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc756308(v=ws.10)?redirectedfrom=MSDN
+// The %1 service entered the %2 state.
+// Ausgeführt / Beendet
+// Stop: 7034 (unexpected) + 7036 "Beendet"
+
 let timeframe = 10d;
 let spanoftime = 1m;
 let threshold = 0;
-// Logik: hole alle gestoppten und schaue dann, ob sie gestartet wurden. ausser die, die innerhalb von 60sekunden neu gestartet wurden
 // first: alle gestoppten holen
 union isfuzzy=true (
 Event
