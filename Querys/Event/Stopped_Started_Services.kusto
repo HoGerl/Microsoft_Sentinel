@@ -36,6 +36,7 @@ Event
 ) on Computer, Service // verknüpfen per ComputerName und ServiceName
 //| where stopTime - startTime < spanoftime
 | where startTime - stopTime > spanoftime
+| where Service has 'McAfee'
 | extend TimeDelta = startTime - stopTime
 | where tolong(TimeDelta) >= threshold
 | project TimeDelta, Computer, Service,  Stop = stopTime, Start = startTime, startTime - stopTime > spanoftime, ServiceStatus
