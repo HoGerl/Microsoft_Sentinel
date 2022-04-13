@@ -1,0 +1,53 @@
+// case, the one event: Stopped '2022-03-31T14:04:27.8991086Z' und started '2022-03-31T14:07:27.8991086Z'
+// stopped ID 7034 - Start ID: 7036
+let timeframe = 2d;
+let spanoftime = 1m;
+let threshold = 0;
+let SEvents = datatable(Date:datetime, EventID: string, ComputerName: string, ServiceName: string, MoreData:dynamic) [
+    datetime('2022-03-29T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"1stopped", "key2":"value2"}),
+    datetime('2022-03-28T14:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"3", "key2":"value4"}),
+    datetime('2022-03-27T14:04:27.8991086Z'), 7034, "SRV1", "ServiceB", dynamic({"key1":"51stopped", "key2":"value6"}),
+    datetime('2022-03-30T10:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"2", "key2":"value8"}),
+    datetime('2022-03-30T14:04:27.8991086Z'), 7034, "SRV1", "ServiceB", dynamic({"key1":"41stopped", "key2":"value2"}),
+    datetime('2022-03-30T14:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"6", "key2":"value4"}),
+    datetime('2022-03-26T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"81stopped", "key2":"value6"}),
+    datetime('2022-03-28T14:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"9 started one", "key2":"value8"}),
+    datetime('2022-03-28T10:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"10 stopped one", "key2":"value2"}),
+    datetime('2022-03-31T14:03:27.8991086Z'), 7036, "SRV1", "ServiceB", dynamic({"key1":"11", "key2":"value4"}),
+    datetime('2022-03-30T10:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"121stopped", "key2":"value6"}),
+    datetime('2022-03-31T14:03:27.8991086Z'), 7036, "SRV1", "ServiceB", dynamic({"key1":"13", "key2":"value8"}),
+    datetime('2022-03-30T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"141stopped", "key2":"value2"}),
+    datetime('2022-03-31T11:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"15", "key2":"value4"}),
+    datetime('2022-03-30T09:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"161stopped", "key2":"value6"}),
+    datetime('2022-03-31T00:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"17", "key2":"value8"}),
+    datetime('2022-03-30T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"181stopped", "key2":"value2"}),
+    datetime('2022-03-30T06:04:27.8991086Z'), 7036, "SRV1", "ServiceB", dynamic({"key1":"19", "key2":"value4"}),
+    datetime('2022-03-30T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"201stopped", "key2":"value6"}),
+    datetime('2022-03-30T08:04:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"21", "key2":"value8"}),
+    datetime('2022-03-30T08:14:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"221stopped", "key2":"value2"}),
+    datetime('2022-03-30T09:34:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"23", "key2":"value4"}),
+    datetime('2022-03-31T14:04:27.8991086Z'), 7034, "SRV1", "ServiceA", dynamic({"key1":"24 the stopped one", "key2":"value6"}),
+    datetime('2022-03-31T14:07:27.8991086Z'), 7036, "SRV1", "ServiceA", dynamic({"key1":"25 the started one", "key2":"value8"}),
+    datetime('2022-03-31T14:04:37.8991086Z'), 7034, "SRV2", "ServiceB", dynamic({"key1":"27 stopped one", "key2":"value8"}),
+    datetime('2022-03-31T14:14:57.8991086Z'), 7036, "SRV2", "ServiceB", dynamic({"key1":"28 the started one", "key2":"value8"}),
+    datetime('2022-03-31T14:04:37.8991086Z'), 7034, "SRV2", "ServiceA", dynamic({"key1":"27 stopped one - sollte nicht da sein", "key2":"value8"}),
+    datetime('2022-03-31T14:04:57.8991086Z'), 7036, "SRV2", "ServiceA", dynamic({"key1":"28 the started one", "key2":"value8"}),
+];
+SEvents
+// Logik: hole alle gestoppten und schaue dann, ob sie gestartet wurden. ausser die, die innerhalb von 60sekunden neu gestartet wurden
+// first: alle gestoppten holen
+| where EventID == 7034
+| where Date > ago(timeframe)
+| project stopTime = Date, ComputerName, ServiceName, MoreData
+| join (
+SEvents 
+// alle gestarteten holen
+| where EventID == 7036
+| where Date > ago(timeframe)
+| project startTime = Date, ComputerName, ServiceName, MoreData
+) on ComputerName, ServiceName // verknüpfen per ComputerName und ServiceName
+//| where stopTime - startTime < spanoftime
+| where startTime - stopTime > spanoftime
+| extend TimeDelta = startTime - stopTime
+| where tolong(TimeDelta) >= threshold
+| project TimeDelta, ComputerName, ServiceName,  Stop = stopTime, Start = startTime, startTime - stopTime > spanoftime, StoppedInfo = MoreData, StartInfo = MoreData1
