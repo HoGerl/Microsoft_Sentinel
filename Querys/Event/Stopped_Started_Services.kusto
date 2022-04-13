@@ -7,19 +7,21 @@
 // Ausgeführt / Beendet
 // Stop: 7034 (unexpected) + 7036 "Beendet"
 
-let timeframe = 10d;
+let timeframe = 2d;
 let spanoftime = 1m;
 let threshold = 0;
 // first: alle gestoppten holen
 union isfuzzy=true (
 Event
 | where EventID == 7034
+| where TimeGenerated > ago(timeframe)
 | parse EventData with * '<Data Name="param1">' Service '</Data>' *
 | parse EventData with * '<Data Name="param2">' ServiceStatus '</Data>' *
 | project stopTime = TimeGenerated, Computer, Service, ServiceStatus
 ),
 (Event
 | where EventID == 7036
+| where TimeGenerated > ago(timeframe)
 | parse EventData with * '<Data Name="param1">' Service '</Data>' *
 | parse EventData with * '<Data Name="param2">' ServiceStatus '</Data>' *
 | project stopTime = TimeGenerated, Computer, Service, ServiceStatus
