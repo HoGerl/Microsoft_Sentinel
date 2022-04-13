@@ -42,3 +42,4 @@ Event
 | extend TimeDelta = startTime - stopTime
 | where tolong(TimeDelta) >= threshold
 | project TimeDelta, Computer, Service,  Stop = stopTime, Start = startTime, startTime - stopTime > spanoftime, ServiceStatus
+| extend HostCustomEntity = Computer, ProcessCustomEntity = Service
