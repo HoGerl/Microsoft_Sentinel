@@ -1,0 +1,33 @@
+let timeframe = 10d;
+let spanoftime = 1m;
+let threshold = 0;
+// Logik: hole alle gestoppten und schaue dann, ob sie gestartet wurden. ausser die, die innerhalb von 60sekunden neu gestartet wurden
+// first: alle gestoppten holen
+union isfuzzy=true (
+Event
+| where EventID == 7034
+| parse EventData with * '<Data Name="param1">' Service '</Data>' *
+| parse EventData with * '<Data Name="param2">' ServiceStatus '</Data>' *
+| project stopTime = TimeGenerated, Computer, Service, ServiceStatus
+),
+(Event
+| where EventID == 7036
+| parse EventData with * '<Data Name="param1">' Service '</Data>' *
+| parse EventData with * '<Data Name="param2">' ServiceStatus '</Data>' *
+| project stopTime = TimeGenerated, Computer, Service, ServiceStatus
+| where ServiceStatus has 'Beendet')
+| join (
+Event 
+// alle gestarteten holen
+| where EventID == 7036
+| where TimeGenerated > ago(timeframe)
+| parse EventData with * '<Data Name="param1">' Service '</Data>' *
+| parse EventData with * '<Data Name="param2">' ServiceStatus '</Data>' *
+| where ServiceStatus has 'Ausgeführt'
+| project startTime = TimeGenerated, Computer, Service, ServiceStatus
+) on Computer, Service // verknüpfen per ComputerName und ServiceName
+//| where stopTime - startTime < spanoftime
+| where startTime - stopTime > spanoftime
+| extend TimeDelta = startTime - stopTime
+| where tolong(TimeDelta) >= threshold
+| project TimeDelta, Computer, Service,  Stop = stopTime, Start = startTime, startTime - stopTime > spanoftime, ServiceStatus
